@@ -2,9 +2,9 @@ import React, { Fragment, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import {useState} from 'react'
-import {SquareState, Square, CharResult, Sign} from './Square';
-
-
+import {Square} from './Square';
+import {input_history, wordResult, CharResult, charState, stringFive,charStateFive, gameState } from './types';
+import {nextCandidate} from './Solver'
 
 
 // const Line = (props:CharResult[]) =>{
@@ -52,59 +52,79 @@ const SolveBoard = (props:SolveBoardStatus) => {
     )
 }
 
-type  wordResult  = {
-    word:string[];
-    result:Sign[];
-}
-type input_history = wordResult[];
-
 
 const Game = () =>{
-    const [state, setState] = useState<input_history>([...Array(6)].map(():wordResult => {
-        return {
-            word:[...Array(5)].fill(''),
-            result:[...Array(5)].fill('a'),
-        }
-    }));
+    const initialWords = Array(5).fill('') as stringFive
+    const initialResults = Array(5).fill('a') as charStateFive
+    const [state, setState] = useState<gameState>(
+        (()=>{
+            let input_history = [...Array(6)].map(():wordResult => {
+                return {
+                    word: initialWords.slice() as stringFive, 
+                    result:initialResults.slice() as charStateFive,
+                }
+            })
+            console.log(input_history)
+            return {
+                history:input_history,
+                candidate:'',
+                reducer:''
+            }
+        })()
+    );
+    console.log(state.history)
 
     const handleClick = (row:number, col:number) =>{
-
-        const order:Sign[] = ['a', 'y', 'g'];
+        //clickに応じてタイルの状態を変更する    
+        const order:charState[] = ['a', 'y', 'g'];
         setState((state)=>{
-            let newState = state.slice();
-            let now:Sign = newState[row].result[col];
+            let newState = {...state};
+            let str:string = newState.history[row].word[col];
+            let now:charState = newState.history[row].result[col];
+            //押された場所に文字が入力されていなかった場合、状態を変更しない。
+            if(str=== ''){return newState;}
+
+            //次の状態に遷移させる.
             const nextIndex = (order.findIndex((d)=>d===now) + 1) % 3;
-            if(newState[row].word[col] !== ''){
-                newState[row].result[col] = order[nextIndex];
-            }
+            newState.history[row].result[col] = order[nextIndex];
             return newState;
         })
     }
+    const updateCandidate = (state:input_history) =>{
+        let newState = state.slice();
+        return newState.slice();
+    }
+
     const keydownEvent = (event: KeyboardEvent) =>{
-        const ew = event.key;
-        const allowd = RegExp('^[a-z]$')
+        //押されたキーボードを解答として埋める
+
+        const ew = event.key;//押されたキーボード
+        const allowd = RegExp('^[a-z]$')//入力対象の文字
 
         if (!ew.match(allowd) && ew !== 'Backspace') return;
 
         setState((state)=>{
-            let newState = state.slice();
-            let word_list = newState.map(d=>d.word).reduce((p,n)=>p.concat(n),[]);
-            const lastIndex = word_list.findIndex(d=>d==='') >= 0 ? word_list.findIndex(d=>d===''): word_list.length ; 
+            let newState = {...state};
+            //入力されている文字一覧
+            let char_list:string[] = newState.history.map(d=>d.word).reduce((p:string[], n)=>p.concat(n), []);
+            const lastIndex = char_list.findIndex(d=>d==='') >= 0 ? char_list.findIndex(d=>d===''): char_list.length ; 
 
             if (ew === 'Backspace'){
                 if(lastIndex === 0) return newState;
                 const col = (lastIndex - 1 )% 5 ;
                 const row = Math.floor((lastIndex-1) / 5)
                 console.log(lastIndex, row,col);
-                newState[row].word[col] = '';
-                newState[row].result[col] = 'a';
+                //一文字削除して、状態を初期化しておく
+                newState.history[row].word[col]  = '';
+                newState.history[row].result[col]  = 'a';
                 return newState
             }else{
-                if(lastIndex === word_list.length ) return newState;
+                if(lastIndex === char_list.length ) return newState;
                 const col = (lastIndex) % 5 ;
                 const row = Math.floor((lastIndex) / 5) ;
-                newState[row].word[col] = ew.toUpperCase();
-                newState[row].result[col] = 'a';
+                //一文字追加して、状態を初期化しておく
+                newState.history[row].word[col]  = ew.toUpperCase();
+                newState.history[row].result[col] = 'a';
                 return newState
             }
         })
@@ -117,7 +137,7 @@ const Game = () =>{
         <div className="App flex items-center justify-center h-screen w-screen ">
             <div className='App-header'></div>
             <div className='App-body '>
-                <SolveBoard data={state} onClick={handleClick}/>
+                <SolveBoard data={state.history} onClick={handleClick}/>
             </div>
             <div className='App-footer'></div>
         </div>
