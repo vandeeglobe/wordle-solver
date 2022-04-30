@@ -64,7 +64,6 @@ const Game = () =>{
                     result:initialResults.slice() as charStateFive,
                 }
             })
-            console.log(input_history)
             return {
                 history:input_history,
                 candidate:'',
@@ -72,7 +71,6 @@ const Game = () =>{
             }
         })()
     );
-    console.log(state.history)
 
     const handleClick = (row:number, col:number) =>{
         //clickに応じてタイルの状態を変更する    
@@ -87,12 +85,16 @@ const Game = () =>{
             //次の状態に遷移させる.
             const nextIndex = (order.findIndex((d)=>d===now) + 1) % 3;
             newState.history[row].result[col] = order[nextIndex];
+            //次に入力するための候補を更新する
+            const [cand, reduceString] = updateCandidate(newState);
+            newState = {...newState, candidate:cand,reducer:reduceString }
             return newState;
         })
     }
-    const updateCandidate = (state:input_history) =>{
-        let newState = state.slice();
-        return newState.slice();
+    const updateCandidate = (state:gameState) =>{
+        const [cand, reduceString] = nextCandidate(state.history);
+        console.log(cand,reduceString);
+        return [cand, reduceString] ;
     }
 
     const keydownEvent = (event: KeyboardEvent) =>{
@@ -113,11 +115,9 @@ const Game = () =>{
                 if(lastIndex === 0) return newState;
                 const col = (lastIndex - 1 )% 5 ;
                 const row = Math.floor((lastIndex-1) / 5)
-                console.log(lastIndex, row,col);
                 //一文字削除して、状態を初期化しておく
                 newState.history[row].word[col]  = '';
                 newState.history[row].result[col]  = 'a';
-                return newState
             }else{
                 if(lastIndex === char_list.length ) return newState;
                 const col = (lastIndex) % 5 ;
@@ -125,8 +125,11 @@ const Game = () =>{
                 //一文字追加して、状態を初期化しておく
                 newState.history[row].word[col]  = ew.toUpperCase();
                 newState.history[row].result[col] = 'a';
-                return newState
             }
+            //次に入力するための候補を更新する
+            const [cand, reduceString] = updateCandidate(newState);
+            newState = {...newState, candidate:cand,reducer:reduceString }
+            return newState;
         })
     }
     useEffect(()=>{

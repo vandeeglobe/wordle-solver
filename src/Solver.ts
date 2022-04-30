@@ -1,12 +1,6 @@
 import { input_history, wordResult,  charState,  stringFive, charStateFive} from './types';
 
 
-
-// export type  wordleResult = {
-//     word:string;
-//     result:string;
-// }
-
 export type  eachCharCond = {
     exclude:Set<string>;
     decide:string;
@@ -46,21 +40,22 @@ function calcCondition(results: wordResult[]):[Set<string>,Set<string>,eachCharC
             category[cat].push(index);
         })
 
-        //includeを計算(y,g)
+        //含まれるcharを計算(y,g)
         const newIncludes = category.y.concat(category.g);
         newIncludes.forEach(ni=>{
             const w = d.word[ni];
             includeChar.add(w);
         })
 
-        //excludeを計算(includeに含まれるものはincludeしない)
+        //含まれないcharを計算(includeに含まれるものはincludeしない)
         category.a.forEach(ei=>{
             const w = d.word[ei];
             if(includeChar.has(w)){return;}
+            if(w === ''){return;}
             excludeChar.add(w);
         })
 
-        //個別のdecidedを計算
+        //個別に含まれるcharを計算
         category.g.forEach(decided=>{
             const w = d.word[decided];
             excludeChar_each[decided].decide = w;
@@ -69,12 +64,12 @@ function calcCondition(results: wordResult[]):[Set<string>,Set<string>,eachCharC
         //個別のexcludeを計算
         category.y.concat(category.a).forEach(excluded=>{
             const w = d.word[excluded];
+            if(w === ''){return;}
             excludeChar_each[excluded].exclude.add(w);
         })
 
 
     })
-
     return [includeChar, excludeChar, excludeChar_each];
 
 }
@@ -90,6 +85,7 @@ function calcCandidate(includeChar:Set<string>, excludeChar:Set<string>, exclude
     const include = Array.from(includeChar)
     .map(d=>'(?=.*' + d + ')')
     .join('');
+    console.log({excludeChar});
     const exclude = Array.from(excludeChar)
         .map(d=>'(?!.*' + d + ')')
         .join('');
@@ -98,10 +94,9 @@ function calcCandidate(includeChar:Set<string>, excludeChar:Set<string>, exclude
     if(d.exclude.size === 0) return '.';
         return '[^' + Array.from(d.exclude).join('') + ']'
     }).join('');
-    const pattern = RegExp('^' + include + exclude + charConditions + '$');
-    const cand = candidate.filter(d=>{
-        return d.match(pattern);
-    })
+    const pattern = RegExp('^' + include + exclude + charConditions + '$', "i");
+    console.log({pattern});
+    const cand = candidate.filter(d => d.match(pattern))
 
     return [cand, pattern];
 }
@@ -116,7 +111,6 @@ function reduceChar(remainCandi:string[], includeChar:Set<string>, excludeChar:S
     let targetIndex:number[] = excludeChar_each.map((d,index)=>{
         return d.decide === '' ? index: -1;
     }).filter(d=>d!==-1);
-    console.log(targetIndex);
 
 
     let remains:Set<string> = new Set<string>();
@@ -149,44 +143,10 @@ function reduceChar(remainCandi:string[], includeChar:Set<string>, excludeChar:S
 }
 
 export function nextCandidate(results:input_history): [string, string]{
-    //y -> present(yellow)
-    //g -> correct(green)
-    //a -> absent(gray)
-    // const initialWords = Array(5).map(():string=>'') as stringFive
-    // const initialResults = Array(5).map(():charState=>'a') as charStateFive
-    // let results:wordResult[] = [
-    //     {
-    //         word:initialWords,
-    //         result:initialResults
-    //     },
-    //     {
-    //         word:initialWords,
-    //         result:initialResults
-    //     },
-    //     {
-    //         word:initialWords,
-    //         result:initialResults
-    //     },
-    //     {
-    //         word:initialWords,
-    //         result:initialResults
-    //     },
-    //     {
-    //         word:initialWords,
-    //         result:initialResults
-    //     },
-    // ];
-
 
     const [includeChar, excludeChar, excludeChar_each]= calcCondition(results);
     const [cand, pattern] = calcCandidate(includeChar, excludeChar, excludeChar_each);
     const reduceStrings = reduceChar(cand, includeChar, excludeChar, excludeChar_each);
-
-
-    // console.log(pattern);
-    console.log(cand[0],cand.length);
-    // console.log(cand);
-    console.log(reduceStrings.word);
     return [cand[0], reduceStrings.word]
 }
 
