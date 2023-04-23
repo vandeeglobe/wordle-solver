@@ -41,9 +41,9 @@ type CandidateStatus = {
   data: string;
 };
 const CandidateBoard = (props: CandidateStatus) => {
-  console.log({ props });
+  //   console.log({ props });
   const candWR: wordResult = {
-    word: (props.data === ""
+    word: (!props?.data || props.data === ""
       ? Array(5).fill("")
       : Array.from(props.data)) as stringFive,
     result: Array(5).fill("a") as charStateFive,
