@@ -1,3 +1,25 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+  overflow-x: hidden;
+}
+
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  color: orange;
+  font-size: large;
+  width: 80vw;
+  justify-content: center;
+  align-items: center;
+}
+.keyboard > input {
+  color: black;
+  background-color: black;
+  width: 0px;
+  height: 0px;
+  /* visibility: hidden; */
+  /* display: none; */
+}

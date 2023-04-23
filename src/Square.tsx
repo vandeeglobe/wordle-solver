@@ -1,5 +1,4 @@
 import React from "react";
-
 export type Sign = "a" | "g" | "y";
 
 export type CharResult = {

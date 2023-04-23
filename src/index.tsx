@@ -3,6 +3,7 @@ import ReactDOM from "react-dom";
 import "./index.css";
 import { useState } from "react";
 import { Square } from "./Square";
+import { Keyboard } from "./Keyboard";
 import {
   input_history,
   wordResult,
@@ -164,6 +165,7 @@ const Game = () => {
   };
   useEffect(() => {
     document.addEventListener("keydown", keydownEvent, false);
+    return () => {};
   }, []);
 
   return (
@@ -192,6 +194,7 @@ const Game = () => {
       </div>
 
       <div className="App-body ">
+        <Keyboard />
         <SolveBoard
           data={state.history}
           candidate={state.candidate}
