@@ -4,6 +4,7 @@ import "./index.css";
 import { useState } from "react";
 import { Square } from "./Square";
 import { Keyboard } from "./Keyboard";
+import { Usage } from "./Usage";
 import {
   input_history,
   wordResult,
@@ -194,6 +195,7 @@ const Game = () => {
       </div>
 
       <div className="App-body ">
+        <Usage></Usage>
         <Keyboard />
         <SolveBoard
           data={state.history}
