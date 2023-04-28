@@ -1,5 +1,5 @@
 import React, { Fragment, useEffect } from "react";
-import ReactDOM from "react-dom";
+import ReactDOM from "react-dom/client";
 import "./index.css";
 import { useState } from "react";
 import { Square } from "./Square";
@@ -209,4 +209,7 @@ const Game = () => {
   );
 };
 
-ReactDOM.render(<Game />, document.getElementById("root"));
+const container = document.getElementById("root");
+if (container) {
+  ReactDOM.createRoot(container).render(<Game />);
+}
