@@ -33,7 +33,13 @@ export const Square = (props: SquareState) => {
   // console.log('render Square')
   return (
     <div className={rect_class} onClick={props.onClick}>
-      {props.data.char}
+      {props.data.char && props.data.char !== "" ? (
+        props.data.char
+      ) : (
+        <label className={"text-gray-400"} htmlFor="showKeyboard">
+          -
+        </label>
+      )}
     </div>
   );
 };
