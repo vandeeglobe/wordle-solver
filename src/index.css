@@ -4,24 +4,19 @@
 
 body {
   overflow-x: hidden;
+  background: #000;
 }
 
-.keyboard {
-  display: flex;
-  flex-direction: column;
-  color: orange;
-  font-size: large;
-  width: 80vw;
-  justify-content: center;
-  align-items: center;
-}
-.keyboard > input {
-  color: black;
-  background-color: black;
-  width: 0px;
-  height: 0px;
-  /* visibility: hidden; */
-  /* display: none; */
+.keyboard-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .usage {

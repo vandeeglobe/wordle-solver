@@ -1,166 +1,165 @@
-import { input_history, wordResult, charState } from "./types";
+import { charState, input_history, wordResult } from "./types";
 import { La, Ta } from "./Words";
 
-export type eachCharCond = {
-  exclude: Set<string>;
-  decide: string;
+/** Possible answers, in list order. Suggestions are chosen from this set. */
+const ANSWERS: readonly string[] = La;
+
+/** Every guess Wordle will accept, including answers. */
+const ALLOWED: readonly string[] = [...La, ...Ta];
+
+export type SolverResult = {
+  /** Answer words still consistent with fully colored rows. */
+  answers: string[];
+  /** Next guess. Always one of `answers` when any remain. */
+  suggestion: string;
 };
 
-export type subCategory = Record<charState, number[]>;
+function isColored(color: charState): boolean {
+  return color === "a" || color === "y" || color === "g";
+}
 
-const candidate: string[] = Ta.concat(La);
+function uniqueLetters(word: string): string[] {
+  const seen: Record<string, true> = {};
+  const letters: string[] = [];
+  for (let index = 0; index < word.length; index += 1) {
+    const letter = word[index];
+    if (seen[letter]) continue;
+    seen[letter] = true;
+    letters.push(letter);
+  }
+  return letters;
+}
 
-function calcCondition(
-  results: wordResult[]
-): [Set<string>, Set<string>, eachCharCond[]] {
-  //選択肢
-  let includeChar: Set<string> = new Set();
-  let excludeChar: Set<string> = new Set();
-  let excludeChar_each: eachCharCond[] = (() => {
-    let arr = [];
-    for (let i = 0; i < 5; i++) {
-      arr.push({
-        exclude: new Set<string>(),
-        decide: "",
-      });
+type Constraints = {
+  must: Array<string | null>;
+  notAt: Array<Set<string>>;
+  min: Map<string, number>;
+  max: Map<string, number>;
+};
+
+function emptyConstraints(): Constraints {
+  return {
+    must: [null, null, null, null, null],
+    notAt: Array.from({ length: 5 }, () => new Set<string>()),
+    min: new Map(),
+    max: new Map(),
+  };
+}
+
+/** A row counts only after all five letters have a color. Unset tiles do not. */
+export function isGradedRow(row: wordResult): boolean {
+  if (row.word.some((letter) => letter === "")) return false;
+  return row.result.every((color) => isColored(color));
+}
+
+function addGuess(constraints: Constraints, row: wordResult): void {
+  const word = row.word.map((letter) => letter.toLowerCase());
+  const present = new Map<string, number>();
+  const absent = new Set<string>();
+
+  for (let index = 0; index < 5; index += 1) {
+    const letter = word[index];
+    const color = row.result[index];
+    if (color === "g") {
+      constraints.must[index] = letter;
+      present.set(letter, (present.get(letter) ?? 0) + 1);
+    } else if (color === "y") {
+      constraints.notAt[index].add(letter);
+      present.set(letter, (present.get(letter) ?? 0) + 1);
+    } else if (color === "a") {
+      constraints.notAt[index].add(letter);
+      absent.add(letter);
     }
-    return arr;
-  })();
+  }
 
-  results.forEach((d) => {
-    let category: subCategory = {
-      y: [],
-      g: [],
-      a: [],
-    };
-    d.result.forEach((cat: charState, index) => {
-      category[cat].push(index);
-    });
-
-    //含まれるcharを計算(y,g)
-    const newIncludes = category.y.concat(category.g);
-    newIncludes.forEach((ni) => {
-      const w = d.word[ni];
-      includeChar.add(w);
-    });
-
-    //含まれないcharを計算(includeに含まれるものはincludeしない)
-    category.a.forEach((ei) => {
-      const w = d.word[ei];
-      if (includeChar.has(w)) {
-        return;
-      }
-      if (w === "") {
-        return;
-      }
-      excludeChar.add(w);
-    });
-
-    //個別に含まれるcharを計算
-    category.g.forEach((decided) => {
-      const w = d.word[decided];
-      excludeChar_each[decided].decide = w;
-    });
-
-    //個別のexcludeを計算
-    category.y.concat(category.a).forEach((excluded) => {
-      const w = d.word[excluded];
-      if (w === "") {
-        return;
-      }
-      excludeChar_each[excluded].exclude.add(w);
-    });
+  present.forEach((count, letter) => {
+    constraints.min.set(letter, Math.max(constraints.min.get(letter) ?? 0, count));
   });
-  return [includeChar, excludeChar, excludeChar_each];
+
+  absent.forEach((letter) => {
+    // A gray tile means this occurrence is not in the word. If the same
+    // letter is also yellow or green, the word has exactly that many.
+    const cap = present.get(letter) ?? 0;
+    const previous = constraints.max.get(letter);
+    constraints.max.set(
+      letter,
+      previous === undefined ? cap : Math.min(previous, cap)
+    );
+  });
+}
+
+function matches(word: string, constraints: Constraints): boolean {
+  const seen = new Map<string, number>();
+  for (let index = 0; index < 5; index += 1) {
+    const letter = word[index];
+    if (constraints.must[index] && letter !== constraints.must[index]) return false;
+    if (constraints.notAt[index].has(letter)) return false;
+    seen.set(letter, (seen.get(letter) ?? 0) + 1);
+  }
+  let fits = true;
+  constraints.min.forEach((min, letter) => {
+    if ((seen.get(letter) ?? 0) < min) fits = false;
+  });
+  constraints.max.forEach((max, letter) => {
+    if ((seen.get(letter) ?? 0) > max) fits = false;
+  });
+  return fits;
+}
+
+function constraintsFrom(history: input_history): Constraints {
+  const constraints = emptyConstraints();
+  for (const row of history) {
+    if (isGradedRow(row)) addGuess(constraints, row);
+  }
+  return constraints;
 }
 
 /**
- *
- * @param includeChar
- * @param excludeChar
- * @param excludeChar_each
- * @returns 残りの候補をすべて出力する
+ * Pick the remaining answer that covers the most common leftover letters.
+ * Repeated letters count once. Ties break alphabetically so the result is stable.
  */
-function calcCandidate(
-  includeChar: Set<string>,
-  excludeChar: Set<string>,
-  excludeChar_each: eachCharCond[]
-): [string[], RegExp] {
-  const include = Array.from(includeChar)
-    .map((d) => "(?=.*" + d + ")")
-    .join("");
-  const exclude = Array.from(excludeChar)
-    .map((d) => "(?!.*" + d + ")")
-    .join("");
-  const charConditions = excludeChar_each
-    .map((d) => {
-      if (d.decide !== "") return d.decide;
-      if (d.exclude.size === 0) return ".";
-      return "[^" + Array.from(d.exclude).join("") + "]";
-    })
-    .join("");
-  const pattern = RegExp("^" + include + exclude + charConditions + "$", "i");
-  const cand = candidate.filter((d) => d.match(pattern));
+function recommend(answers: string[], guessed: ReadonlySet<string>): string {
+  const fresh = answers.filter((word) => !guessed.has(word));
+  const pool = fresh.length > 0 ? fresh : answers;
+  if (pool.length === 0) return "";
+  if (pool.length === 1) return pool[0];
 
-  return [cand, pattern];
-}
-
-export type score = {
-  word: string;
-  score: number;
-};
-
-function reduceChar(
-  remainCandi: string[],
-  includeChar: Set<string>,
-  excludeChar: Set<string>,
-  excludeChar_each: eachCharCond[]
-): score {
-  let targetIndex: number[] = excludeChar_each
-    .map((d, index) => {
-      return d.decide === "" ? index : -1;
-    })
-    .filter((d) => d !== -1);
-
-  let remains: Set<string> = new Set<string>();
-
-  for (const word of remainCandi) {
-    for (const i of targetIndex) {
-      remains.add(word[i]);
+  const frequency = new Map<string, number>();
+  for (const word of answers) {
+    for (const letter of uniqueLetters(word)) {
+      frequency.set(letter, (frequency.get(letter) ?? 0) + 1);
     }
-    if (remains.size === 24) break;
   }
 
-  let cand: score = { word: "", score: -1 };
-  for (const word of candidate) {
+  let best = pool[0];
+  let bestScore = -1;
+  for (const word of pool) {
     let score = 0;
-    const ws = word.split("");
-    for (const w of ws) {
-      if (remains.has(w)) score++;
+    for (const letter of uniqueLetters(word)) {
+      score += frequency.get(letter) ?? 0;
     }
-    if (score > cand.score) {
-      cand.word = word;
-      cand.score = score;
+    if (score > bestScore || (score === bestScore && word < best)) {
+      best = word;
+      bestScore = score;
     }
-
-    if (cand.score === 5) break;
-    if (cand.score >= remains.size) break;
   }
-  return cand;
+  return best;
 }
 
-export function nextCandidate(results: input_history): [string, string] {
-  const [includeChar, excludeChar, excludeChar_each] = calcCondition(results);
-  const [cand, pattern] = calcCandidate(
-    includeChar,
-    excludeChar,
-    excludeChar_each
-  );
-  const reduceStrings = reduceChar(
-    cand,
-    includeChar,
-    excludeChar,
-    excludeChar_each
-  );
-  return [cand[0], reduceStrings.word];
+export function nextCandidate(history: input_history): SolverResult {
+  const constraints = constraintsFrom(history);
+  const answers = ANSWERS.filter((word) => matches(word, constraints)).sort();
+  const guessed = new Set<string>();
+  for (const row of history) {
+    if (isGradedRow(row)) guessed.add(row.word.join("").toLowerCase());
+  }
+  return {
+    answers,
+    suggestion: recommend(answers, guessed),
+  };
+}
+
+/** Used by tests to confirm the allowed list still contains every answer. */
+export function allowedGuessCount(): number {
+  return new Set(ALLOWED).size;
 }

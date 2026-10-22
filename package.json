@@ -2,6 +2,9 @@
   "name": "wordle-solver",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "dependencies": {
     "@testing-library/jest-dom": "5.16.5",
     "@testing-library/react": "14.0.0",
@@ -21,6 +24,7 @@
     "startpub": "set HOST=0.0.0.0&&set PORT=3001&&react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "lint": "eslint src --ext .ts,.tsx",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
