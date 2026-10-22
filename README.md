@@ -6,7 +6,7 @@ Wordle に入れた文字と色から、まだあり得る答えを絞り込む�
 
 ## 必要なもの
 
-- Node.js 22.12 以上
+- Node.js 24（Vercel が使う版）。手元は 22.12 以上でもビルドできます。
 - npm
 
 ## 動かし方
@@ -31,15 +31,15 @@ npm run build
 
 ## Vercel への出し方
 
-`vercel.json` で次を指定しています。
+`package.json` の `engines.node` は `24.x` です。Vercel ではこの指定が、プロジェクト設定の Node.js バージョンより優先されます。このプロジェクトは 2024 年から Node.js 20 のままになっていて、2026-10-01 以降は新しいデプロイがビルド前に失敗します。
+
+`vercel.json` で次を指定しています。こちらもダッシュボードの同名設定より優先されます。
 
 - Framework: Vite
 - Build Command: `npm run build`
 - Output Directory: `dist`
 
-以前は Create React App で、出力先は `build` でした。Vercel のプロジェクト設定に Output Directory や Build Command が残っていると、そちらが `vercel.json` より優先されます。デプロイが空になる、または古い `build` を探しにいく場合は、ダッシュボードの上書きを消すか、Output Directory を `dist` にしてください。
-
-このリポジトリを Vercel に接続したままなら、このブランチをマージして再デプロイすれば更新されます。環境変数は使っていません。
+公開 URL `wordle-solver-one.vercel.app` は、別プロジェクトではなく `wordle-solver-7dnx`（チーム `vandeeglobes-projects`）の 2024-09-11 のデプロイです。環境変数は使っていません。
 
 ## 使い方
 
