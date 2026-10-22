@@ -21,6 +21,7 @@
     "startpub": "set HOST=0.0.0.0&&set PORT=3001&&react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "lint": "eslint src --ext .ts,.tsx",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

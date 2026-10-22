@@ -1,12 +1,19 @@
+import { useOnScreenKeyboard } from "./Keyboard";
+
 export const Usage = () => {
-  const isSmartPhone = navigator.userAgent.match(/(iPhone|iPad|iPod|Android)/i);
+  const showKeyboardHint = useOnScreenKeyboard();
+
   return (
-    <ul className={"list-decimal usage"}>
-      {isSmartPhone ? <li>Click [ShowKeyboard!]</li> : <></>}
-      <li>Enter the characters you typed in wordle</li>
-      <li>Match the panel color by clicking on it.</li>
-      <li>input candidate word below.</li>
-      <li>Enter the word candidate. (→repeat 1)</li>
-    </ul>
+    <ol className="usage mb-3 list-decimal space-y-1 px-5 text-sm sm:text-base">
+      {showKeyboardHint ? <li>Tap Show keyboard, then type the word you played.</li> : null}
+      <li>Type the word you played. An outlined tile is not colored yet.</li>
+      <li>
+        Color every tile in the row: gray, yellow, then green. Click a tile, or
+        focus it and press Enter. Up and Down change the color. Left and Right
+        move between tiles.
+      </li>
+      <li>The possible answers update once a row is fully colored.</li>
+      <li>Play the suggested word, or pick another answer from the list.</li>
+    </ol>
   );
 };

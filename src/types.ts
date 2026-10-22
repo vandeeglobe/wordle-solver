@@ -6,15 +6,16 @@ export type TTuple<N extends number, T> = N extends 0
   ? TTuple<N, [T[0], ...T]>
   : TTuple<N, [T]>;
 
-// a->
-// g-> green
-// y-> yellow
+// u -> color not set yet
+// a -> gray / absent
+// g -> green
+// y -> yellow
 
-export type charState = "a" | "g" | "y";
+export type charState = "u" | "a" | "g" | "y";
 
 export type CharResult = {
-  char: string; //1文字
-  result: charState; //1charaState
+  char: string;
+  result: charState;
 };
 
 export type stringFive = TTuple<5, string>;
@@ -31,10 +32,9 @@ export type wordResult = {
 };
 export type input_history = wordResult[];
 export type gameState = {
-  //入力された文字と、その結果の対応表
   history: input_history;
-  //候補
-  candidate: string;
-  //候補を除外するための文字列
-  reducer: string;
+  /** Recommended next guess, chosen from the remaining answers. */
+  suggestion: string;
+  /** Answer words still consistent with fully colored rows. */
+  answers: string[];
 };
