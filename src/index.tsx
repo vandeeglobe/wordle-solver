@@ -2,46 +2,15 @@ import { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import { Keyboard } from "./Keyboard";
+import { blankHistory, cycleTile, solveForDisplay, typeInto, typeText } from "./play";
 import { Square } from "./Square";
-import { nextCandidate } from "./Solver";
 import { Usage } from "./Usage";
-import {
-  CharResult,
-  charState,
-  charStateFive,
-  gameState,
-  input_history,
-  stringFive,
-  wordResult,
-} from "./types";
+import { CharResult, gameState, wordResult } from "./types";
 
-const COLOR_ORDER: charState[] = ["u", "a", "y", "g"];
 const VISIBLE_ANSWERS = 48;
 
-function blankRow(): wordResult {
-  return {
-    word: Array(5).fill("") as stringFive,
-    result: Array(5).fill("u") as charStateFive,
-  };
-}
-
-function blankHistory(): input_history {
-  return Array.from({ length: 6 }, blankRow);
-}
-
-function stepColor(current: charState, direction: 1 | -1): charState {
-  const index = COLOR_ORDER.indexOf(current);
-  const next = (index + direction + COLOR_ORDER.length) % COLOR_ORDER.length;
-  return COLOR_ORDER[next];
-}
-
-function withSolved(history: input_history): gameState {
-  const solved = nextCandidate(history);
-  return {
-    history,
-    suggestion: solved.suggestion,
-    answers: solved.answers,
-  };
+function withSolved(history: gameState["history"]): gameState {
+  return solveForDisplay(history);
 }
 
 type LineProps = {
@@ -90,9 +59,11 @@ const SuggestionTiles = ({ word }: { word: string }) => {
 const CandidateBoard = ({
   suggestion,
   answers,
+  note,
 }: {
   suggestion: string;
   answers: string[];
+  note: string | null;
 }) => {
   const shown = answers.slice(0, VISIBLE_ANSWERS);
   const hidden = answers.length - shown.length;
@@ -105,6 +76,9 @@ const CandidateBoard = ({
         <p className="mt-1 text-center font-mono text-sm uppercase tracking-wide text-sky-200">
           {suggestion}
         </p>
+      ) : null}
+      {note ? (
+        <p className="mb-3 mt-4 text-center text-sm text-amber-200">{note}</p>
       ) : null}
       <h2 className="mb-2 mt-4 text-center text-sm font-semibold text-white">
         {answers.length === 1 ? "1 possible answer" : `${answers.length} possible answers`}
@@ -133,56 +107,30 @@ const Game = () => {
   const [state, setState] = useState<gameState>(() => withSolved(blankHistory()));
 
   const handleCycle = (row: number, col: number, direction: 1 | -1) => {
-    setState((current) => {
-      if (current.history[row].word[col] === "") return current;
-      const history = current.history.map((line, lineIndex) => {
-        if (lineIndex !== row) return line;
-        const result = [...line.result] as charStateFive;
-        result[col] = stepColor(line.result[col], direction);
-        return {
-          word: [...line.word] as stringFive,
-          result,
-        };
-      });
-      return withSolved(history);
-    });
+    setState((current) => withSolved(cycleTile(current.history, row, col, direction)));
+  };
+
+  const handleType = (text: string) => {
+    setState((current) => withSolved(typeText(current.history, text)));
   };
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
-      const target = event.target;
-
       const key = event.key;
       const isLetter = /^[a-zA-Z]$/.test(key);
       if (!isLetter && key !== "Backspace") return;
-      event.preventDefault();
-      if (target instanceof HTMLInputElement) target.value = "";
-
-      setState((current) => {
-        const letters = current.history.flatMap((line) => line.word);
-        const emptyAt = letters.findIndex((letter) => letter === "");
-        const lastIndex = emptyAt >= 0 ? emptyAt : letters.length;
-        const history = current.history.map((line) => ({
-          word: [...line.word] as stringFive,
-          result: [...line.result] as charStateFive,
-        }));
-
-        if (key === "Backspace") {
-          if (lastIndex === 0) return current;
-          const row = Math.floor((lastIndex - 1) / 5);
-          const col = (lastIndex - 1) % 5;
-          history[row].word[col] = "";
-          history[row].result[col] = "u";
-        } else {
-          if (lastIndex === letters.length) return current;
-          const row = Math.floor(lastIndex / 5);
-          const col = lastIndex % 5;
-          history[row].word[col] = key.toUpperCase();
-          history[row].result[col] = "u";
-        }
-        return withSolved(history);
-      });
+      const target = event.target;
+      // The guess field reports letters through its input event. Handling the
+      // keydown as well would insert each on-screen key twice.
+      if (target instanceof HTMLInputElement && target.id === "showKeyboard") {
+        if (key !== "Backspace") return;
+        event.preventDefault();
+        target.value = "";
+      } else {
+        event.preventDefault();
+      }
+      setState((current) => withSolved(typeInto(current.history, key)));
     };
 
     document.addEventListener("keydown", onKeyDown);
@@ -211,7 +159,7 @@ const Game = () => {
       </header>
       <main className="mx-auto flex w-full max-w-lg flex-col items-center px-2 pb-10 pt-4">
         <Usage />
-        <Keyboard />
+        <Keyboard onType={handleType} />
         <div className="flex flex-col gap-1" role="group" aria-label="Guesses">
           {state.history.map((line, row) => (
             <Line key={row} row={row} data={line} onCycle={(col, direction) => handleCycle(row, col, direction)} />
@@ -226,7 +174,11 @@ const Game = () => {
             Reset
           </button>
         </div>
-        <CandidateBoard suggestion={state.suggestion} answers={state.answers} />
+        <CandidateBoard
+          suggestion={state.suggestion}
+          answers={state.answers}
+          note={state.note}
+        />
       </main>
       <footer className="mx-auto flex w-full max-w-lg justify-center px-3 pb-8 text-sm text-gray-300">
         <a className="underline" href="/privacy.html">

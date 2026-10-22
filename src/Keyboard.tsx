@@ -29,7 +29,7 @@ export function useOnScreenKeyboard(): boolean {
   return visible;
 }
 
-export const Keyboard = () => {
+export const Keyboard = ({ onType }: { onType: (text: string) => void }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const visible = useOnScreenKeyboard();
 
@@ -55,6 +55,11 @@ export const Keyboard = () => {
         autoCorrect="off"
         spellCheck={false}
         className="keyboard-input"
+        onInput={(event) => {
+          const value = event.currentTarget.value;
+          event.currentTarget.value = "";
+          if (value) onType(value);
+        }}
       />
     </form>
   );
