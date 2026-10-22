@@ -217,8 +217,22 @@ const Game = () => {
             <Line key={row} row={row} data={line} onCycle={(col, direction) => handleCycle(row, col, direction)} />
           ))}
         </div>
+        <div className="mt-4">
+          <button
+            type="button"
+            className="rounded border border-gray-500 px-4 py-2 text-sm text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-white"
+            onClick={() => setState(withSolved(blankHistory()))}
+          >
+            Reset
+          </button>
+        </div>
         <CandidateBoard suggestion={state.suggestion} answers={state.answers} />
       </main>
+      <footer className="mx-auto flex w-full max-w-lg justify-center px-3 pb-8 text-sm text-gray-300">
+        <a className="underline" href="/privacy.html">
+          Privacy
+        </a>
+      </footer>
     </div>
   );
 };

@@ -1,3 +1,4 @@
+import { describe, expect, test } from "vitest";
 import { allowedGuessCount, isGradedRow, nextCandidate } from "./Solver";
 import { charStateFive, stringFive, wordResult } from "./types";
 import { La, Ta } from "./Words";
