@@ -37,4 +37,6 @@ export type gameState = {
   suggestion: string;
   /** Answer words still consistent with fully colored rows. */
   answers: string[];
+  /** Set when a colored row was left out because it contradicts another row. */
+  note: string | null;
 };
