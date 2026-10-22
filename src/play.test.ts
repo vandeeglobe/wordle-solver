@@ -1,3 +1,4 @@
+import { describe, expect, test } from "vitest";
 import { nextCandidate } from "./Solver";
 import { blankHistory, paintRow, solveForDisplay, typeText } from "./play";
 import { charStateFive, stringFive, wordResult } from "./types";

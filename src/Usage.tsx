@@ -14,6 +14,7 @@ export const Usage = () => {
       </li>
       <li>The possible answers update once a row is fully colored.</li>
       <li>Play the suggested word, or pick another answer from the list.</li>
+      <li>Press Reset to clear the board.</li>
     </ol>
   );
 };
